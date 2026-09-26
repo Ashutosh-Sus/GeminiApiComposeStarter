@@ -11,7 +11,7 @@ val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
-val geminiApiKey: String = (localProperties.getProperty("GEMINI_API_KEY") ?: System.getenv("Gemini_Api_Key"))
+val geminiApiKey: String = (localProperties.getProperty("GEMINI_API_KEY") ?: System.getenv("GEMINI_API_KEY"))
     ?.trim()
     .orEmpty()
 
@@ -39,7 +39,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.google.generativeai)
+    implementation(libs.androidx.security.crypto)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
