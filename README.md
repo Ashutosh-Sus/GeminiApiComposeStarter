@@ -1,7 +1,8 @@
 # Gemini API Compose Starter
 
 A Jetpack Compose chat UI backed by the Gemini API, rendering the conversation as a
-scrolling list of Material 3 bubbles.
+scrolling list of Material 3 bubbles. The conversation persists across app restarts,
+the theme (dark/light) is remembered per device, and prompts can be typed or spoken.
 
 ## Setup
 
@@ -51,6 +52,30 @@ keep Gemini calls behind a backend proxy that holds the real key, and/or restric
 client-side key with [Firebase App Check](https://firebase.google.com/docs/app-check)
 so it's only usable from an attested build of this app.
 
+## Persistence and preferences
+
+- **Chat history** (`ChatHistoryRepository` / `ChatHistoryRepositoryImpl`) is stored as a
+  JSON array in Preferences DataStore and is the single source of truth for the
+  conversation shown on screen — `ChatViewModel` collects it directly instead of holding
+  its own copy, so the conversation survives process death and app restarts.
+- **Theme preference** (`UserPreferencesRepository`) remembers a dark/light override in
+  DataStore, toggled from the switch in the top bar; when unset it follows the system
+  setting.
+- Room was the library named in the assignment for chat history, but its KSP annotation
+  processor does not currently work with this project's AGP 9 build (`kspDebugKotlin`
+  fails with an internal KSP error under AGP's built-in Kotlin compilation), and falling
+  back to the classic standalone Kotlin Gradle plugin conflicts with AGP 9's own Kotlin
+  integration (`Cannot add extension with name 'kotlin'`). DataStore avoids needing an
+  annotation processor at all, so it was used instead.
+
+## Voice input
+
+The mic button next to Send launches `RecognizerIntent.ACTION_RECOGNIZE_SPEECH` via
+`rememberLauncherForActivityResult`, and fills the prompt field with the top recognized
+result. If no speech-recognition activity is available on the device, it surfaces an
+error Snackbar instead of crashing. The `<queries>` entry in `AndroidManifest.xml` is
+required for the app to see the recognizer at all under API 30+ package visibility.
+
 ## Running the app
 
 ```
@@ -61,4 +86,17 @@ so it's only usable from an attested build of this app.
 
 ## Tests
 
-No automated unit or Compose UI tests are included in this submission.
+- `app/src/test/.../ui/chat/ChatViewModelTest.kt` — unit tests against fake repositories
+  (`FakeGeminiRepository`, `FakeChatHistoryRepository`, `FakeUserPreferencesRepository`),
+  covering empty-prompt validation, the missing-key path, a successful send, a failed
+  send, voice-input-unavailable, and the dark-mode toggle.
+- `app/src/androidTest/.../ui/chat/ChatScreenTest.kt` — Compose UI tests with
+  `createComposeRule()` covering the empty-conversation placeholder, message rendering,
+  the prompt-error message, and typing plus sending.
+
+Run them with:
+
+```
+./gradlew testDebugUnitTest
+./gradlew connectedDebugAndroidTest   # needs a running emulator or device
+```
